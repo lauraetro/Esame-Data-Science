@@ -1,0 +1,169 @@
+---
+title: "Codice Titanic"
+author: "Laura Etro"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### TITANIC 
+
+L'affondamneto del Titanic è stato uno dei naufragi piu famosi della storia. 
+La nave che aveva una capacità di  2224 persone tra membri ed equipaggio, era il simbolo dell'Inghilterra dei tempi: l'imbarcazione più lussuosa e tecnologica mai costruita. Essa salpò dal porto di Southampton, piccola cittadina britannica, con destinazione New York, ma nella notte del 14 aprile 1912 questa entrò in colleisione con un iceberge e ne  provocò uno quarcio che porto poi l'inabissamneto dell'imbarcazione il giorno sucessivo.
+
+
+```{r}
+# Importazione dataset
+titanic <- read.csv("~/Desktop/Università/SECONDO ANNO/Fondamenti di Scienza dei Dati/Progetto Esame/train.csv")
+#View(titanic)
+```
+
+```{r}
+dim(titanic)
+```
+Questo dataset raccoglie dati per 821 persone divisi in 12 colonne :
+  1. Survived: Sopravissuti (0 = No; 1 = Si)
+  2. Pclass: Classe Passeggeri (1 = 1st; 2 = 2nd; 3 = 3rd)
+  3. Name: Nome
+  4. Sex: Sesso
+  5. Age: Anni 
+  6. Sibsp: Numero di congiunti a bordo
+  7. Parch: Numero di bambini a bardo
+  8. Ticket: Numero ticket
+  9. Fare: Tariffa per passeggero
+  10.Cabin: Cabina
+  11.Embarked: Porto di partenzan (C = Cherbourg; Q = Queenstown; S = Southampton)
+  + una colanna per numerare 
+Noi utilizzeremo solo un sottogruppo di queste.
+
+### Analisi del dataset
+
+```{r}
+# caricamento la libreria dplyr necessario per la manipolazione dei dati
+library(dplyr)
+
+# selezioniamo solo le colonne necessarie per l'analisi e visualizziamo le prime sei righe
+titanic = select(titanic, Survived, Pclass, Age, Sex, SibSp, Parch, Embarked)
+head (titanic)
+```
+
+
+```{r}
+# eliminiamo i valori NA dalla colonna Age
+titanic = na.omit(titanic)
+titanic
+```
+
+
+```{r}
+# conversione da variabile intera a fattore
+titanic$Survived = factor(titanic$Survived)
+titanic$Pclass = factor(titanic$Pclass, order=TRUE, levels = c(3, 2, 1))
+titanic
+```
+
+### Visualizzazione dei dati
+
+## Quanti sono stati i sopravissuti e quanti sono stati i morti?
+```{r}
+library(ggplot2)
+
+ggplot(titanic, aes(x = Survived)) +
+  geom_bar(width=0.4, fill = "cyan3") +
+  geom_text(stat='count', 
+            aes(label=stat(count)), 
+            vjust=-0.7) +
+  theme_classic()
+```
+
+## Sono sopravissuti e morti più uomoni o donne?
+```{r}
+ggplot(titanic, aes(x = Survived, fill=Sex)) + 
+ geom_bar(position = "dodge") +
+ geom_text(stat="count", 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.7)+
+ theme_classic()
+```
+
+## Quall'era l'andamento delle età dei passeggeri del Titanic?
+```{r}
+ggplot(titanic, aes(x = Age)) +
+ geom_density(fill="cyan3")
+```
+## Sono morti più uomini o donne nelle diverse fasce d'età?
+```{r}
+# creiamo degli intervalli di valori per la variabile Age 
+titanic$Age2 = cut(titanic$Age, c(0,10,20,30,40,50,60,70,80,100))
+
+# plottiamo i dati dicretizzati e riempiamo il grafico con i dati relativi al sesso dei passeggeri
+ggplot(titanic, aes(x = Age2, fill=Sex)) +
+  geom_bar(position = position_dodge()) +
+  geom_text(stat='count', 
+            aes(label=stat(count)), 
+            position = position_dodge(width=1), 
+            vjust=-0.5)+
+  theme_classic()
+
+```
+
+### Classe appartenevano dei passeggeri?
+## Avevano più possibilità di sopravvivere i passeggeri della 1°, 2° o 3° classe ?
+```{r}
+ggplot(titanic, aes(x = Survived, fill=Pclass)) +
+ geom_bar(position = "dodge") +
+ geom_text(stat="count", 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), 
+           vjust=-0.5)+
+ theme_classic()
+```
+
+## Di che età e di che classe di appartenenza erano i passeggeri non sopravissuti al naufragio?
+```{r}
+ggplot(data = titanic) +
+  geom_freqpoly(mapping = aes(x = Age, colour = Pclass))
+```
+
+## Passiamo ad analizzare i sopravissuti in base alla loro classe di appartenenza.
+```{r}
+# relazione tra variabile Survived e Pclass
+chisq.test(titanic$Survived, titanic$Pclass)
+```
+
+```{r}
+# conversione da variabile categoriale a variabile cardinale
+titanic$Survived <- as.numeric(titanic$Survived)
+titanic$Pclass <- as.numeric(titanic$Pclass)
+
+#percentuale di correlazione tra le due variabili
+cor.test(titanic$Survived, titanic$Pclass, method = 'pearson')
+```
+
+### C'è una relazione tra porto d'imbarco e sopravvivenza ?
+```{r}
+# aggiungiamo i livelli alla variabile Embarked
+titanic$Embarked <- factor(titanic$Embarked, levels = c("C","S","Q"))
+
+# tabella proporzioni tra variabile Survived ed Embarked
+Survived_Embarked <- table(titanic$Survived , titanic$Embarked)
+proportion_table <- prop.table(Survived_Embarked,2)
+
+barplot(proportion_table,
+        main = "Distribuzione dei sopravissuti in base al punto di imbarco",
+        xlab = "Punto di Imbarco",
+        col = c("cyan3", "coral") ,
+        legend = rownames(proportion_table),
+        beside= TRUE
+        )
+# 1 -> morti
+# 2 -> sopravissuti 
+```
+
+Andiamo a vedere che relazione si instaura tra la variabile Survived ed Embarked utilizzando il test chi quadrato : 
+```{r}
+# relazione tra la variabile Survived ed Embarked
+chisq.test(Survived_Embarked)
+```

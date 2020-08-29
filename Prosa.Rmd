@@ -1,0 +1,216 @@
+---
+title: "Titanic Prosa"
+author: "Laura Etro"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### TITANIC 
+
+L'affondamneto del Titanic è stato uno dei naufragi piu famosi della storia. 
+La nave che aveva una capacità di  2224 persone tra membri ed equipaggio, era il simbolo dell'Inghilterra dei tempi: l'imbarcazione più lussuosa e tecnologica mai costruita. Essa salpò dal porto di Southampton, piccola cittadina britannica, con destinazione New York, ma nella notte del 14 aprile 1912 questa entrò in colleisione con un iceberge e ne  provocò uno quarcio che porto poi l'inabissamneto dell'imbarcazione il giorno sucessivo.
+
+
+```{r}
+# Importazione dataset
+titanic <- read.csv("~/Desktop/Università/SECONDO ANNO/Fondamenti di Scienza dei Dati/Progetto Esame/train.csv")
+#View(titanic)
+```
+
+```{r}
+dim(titanic)
+```
+Questo dataset raccoglie dati per 821 persone divisi in 12 colonne :
+  1. Survived: Sopravissuti (0 = No; 1 = Si)
+  2. Pclass: Classe Passeggeri (1 = 1st; 2 = 2nd; 3 = 3rd)
+  3. Name: Nome
+  4. Sex: Sesso
+  5. Age: Anni 
+  6. Sibsp: Numero di congiunti a bordo
+  7. Parch: Numero di bambini a bardo
+  8. Ticket: Numero ticket
+  9. Fare: Tariffa per passeggero
+  10.Cabin: Cabina
+  11.Embarked: Porto di partenzan (C = Cherbourg; Q = Queenstown; S = Southampton)
+  + una colanna per numerare 
+Noi utilizzeremo solo un sottogruppo di queste.
+
+## Analisi del dataset
+
+Osservando il dataset: 
+    - notiamo che la colonna Cabin ha molti valori NA che la rendono poco utile nell'analisi quindi la eliminiamo.
+    - Le colonne PassengerID, Name, Fare, e Tickek non sono utili per la nostra analisi, quindi cancelliamo pure loro. 
+Selezioniamo quindi le colonne che sono necessarie nell'analisi dei sopravissuti sul Titanic.
+
+```{r}
+# caricamento la libreria dplyr necessario per la manipolazione dei dati
+library(dplyr)
+
+# selezioniamo solo le colonne necessarie per l'analisi e visualizziamo le prime sei righe
+titanic = select(titanic, Survived, Pclass, Age, Sex, SibSp, Parch, Embarked)
+head (titanic)
+```
+
+Notiamo che la colonna Age ha molti valori NA,  quindi li eliminiamo.
+```{r}
+titanic = na.omit(titanic)
+titanic
+```
+
+Vediamo che le colonne Survived e Pclass sono numeri interi, ma in realtà sono variabili categoriali. Per convertirli in variabili (o fattori) categoriali si utilizza la funzione factor ().
+
+```{r}
+titanic$Survived = factor(titanic$Survived)
+titanic$Pclass = factor(titanic$Pclass, order=TRUE, levels = c(3, 2, 1))
+titanic
+```
+
+### Visualizzazione dei dati
+
+## Quanti sono stati i sopravissuti e quanti sono stati i morti?
+
+Andiamo a scoprire quanti sono i stati i sopravissuti e i morti del naufragio attraverso una visualizzazione a barre: capiamo subito che ci sono stati più morti (424) che sopravvissuti (290)
+```{r}
+library(ggplot2)
+
+ggplot(titanic, aes(x = Survived)) +
+  geom_bar(width=0.4, fill = "cyan3") +
+  geom_text(stat='count', 
+            aes(label=stat(count)), 
+            vjust=-0.7) +
+  theme_classic()
+```
+
+## Sono sopravissuti e morti più uomoni o donne?
+
+Analizziamo più nello specifico i dati ottenuti dal grafico precedente aggiungendo il conteggio dei sopravvissuti maschi e femmine. 
+
+Per far ciò forniamo l'argomento di riempimento con l'attributo Sex. 
+Per mostrare le barre una accanto all'altra, menzioniamo la posizione = dodge.
+```{r}
+ggplot(titanic, aes(x = Survived, fill=Sex)) + 
+ geom_bar(position = "dodge") +
+ geom_text(stat="count", 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), vjust=-0.7)+
+ theme_classic()
+```
+Possiamo dedurre che un numero molto inferiore di persone è sopravvissuto rispetto a quelle morte e in questi è sopravvissuto un numero maggiore di femmine rispetto ai maschi:  gli uomini hanno una più alta possibilità di morire rispetto alle donne e le donne hanno più probabilità di sopravvivere, in quanto nel momento del naufragio facevano imbarcare sulle scialuppe prima donne ed anziani delle classi più alte e bambini, quindi gli uomini (della 2/3 classe) erano più a rischio di non imbarcarsi nelle barche di salvataggio 
+
+## Quall'era l'andamento delle età dei passeggeri del Titanic?
+
+Analizziamo la distribuzione delle età dei passeggeri sul Titanic
+```{r}
+ggplot(titanic, aes(x = Age)) +
+ geom_density(fill="cyan3")
+```
+Dal grafico deduciamo che la maggior parte dei passeggeri era di età compresa tra i 20 ei 40 anni, magari partiti per certcare la fortuna negli Stati Uniti oppure in vacanza.
+
+Dopo aver visto l'andamento della curva delle età, analizziamo più nello spercifico il sesso dei sopravvisuti e dei morti nelle relative età. Utilizziamo una nuova variabile : Age2, utile per tracciare la distribuzione delle età nel grafico.
+Per discretizzare l'età usiamo la funzione cut() : questa serve per creare degli intervalli sul valore della variabile Age.
+
+```{r}
+# creiamo degli intervalli di valori per la variabile Age 
+titanic$Age2 = cut(titanic$Age, c(0,10,20,30,40,50,60,70,80,100))
+
+# plottiamo i dati dicretizzati e riempiamo il grafico con i dati relativi al sesso dei passeggeri
+ggplot(titanic, aes(x = Age2, fill=Sex)) +
+  geom_bar(position = position_dodge()) +
+  geom_text(stat='count', 
+            aes(label=stat(count)), 
+            position = position_dodge(width=1), 
+            vjust=-0.5)+
+  theme_classic()
+
+```
+Si può vedere che gli uomini hanno un'alta probabilità di sopravvivenza nell'intervallo tra 16/17 fino ai 40'anni, probabilmente dato dal fatto che sono giovani e con maggiori abilità fisiche per sopravviere rispetto un'uomo di 60 anni. Lo stesso ragionamento si può fare parlando per le donne anche se in percentuale minore.
+I neonati e bambini, che siamo maschi o femmine, hanno una probabilità di sopravvivenza molto vicina, ma comunque bassa. Invece se ci spostiamo alla fine dell'asse delle ascisse, notiamo che il tasso di sopravvivenza delle donne crolla in modo drastico dai 50'anni in poi, fino ad annullarsi nell'età compresa tra i 70 e 80 anni, forse influenzato dalla loro età e dalla scarsa presenza di donne anziane sul Titanic rispetto agli uomini della stessa età. 
+
+### Classe appartenevano dei passeggeri?
+## Avevano più possibilità di sopravvivere i passeggeri della 1°, 2° o 3° classe ?
+
+Dai dati abbaimo appreso che la probabilità di sopravvivenza variava in base alla classe di appartenenza : deduciamo che le possibilità di sopravvivenza per i passeggeri in 1a classe erano maggiori rispetto agli altri.
+```{r}
+ggplot(titanic, aes(x = Survived, fill=Pclass)) +
+ geom_bar(position = "dodge") +
+ geom_text(stat="count", 
+           aes(label=stat(count)), 
+           position = position_dodge(width=1), 
+           vjust=-0.5)+
+ theme_classic()
+```
+
+## Di che età e di che classe di appartenenza erano i passeggeri non sopravissuti al naufragio?
+
+Diamo uno sguardo alla variazione di età tra le persone che sono sopravvissute / non sono sopravvissute in base alla classe in cui si trovavano. 
+```{r}
+ggplot(data = titanic) +
+  geom_freqpoly(mapping = aes(x = Age, colour = Pclass))
+```
+La cosa più interessante e che salta all'occhio analizzando questi dati è che le persone che erano nell'ultima classe (classe = 3) e che erano di età compresa tra i 16 ei 40 anni non sopravvissero all'affondamento del Titanic. Quindi si immagina che Jack del film Titanic fosse statisticamente molto probabile che morisse nel disastro, al contrario Rose aveva la prababilità più bassa di morire.
+
+## Passiamo ad analizzare i sopravissuti in base alla loro classe di appartenenza.
+
+Serviamoci di qualche semplice concetto di statistica inferenziale, cioè cerchiamo di trarre delle conclusioni dal nostro dataset utilizzando solo un campione provveniente da esso.
+Supponiamo di voler controllare la relazione tra la variabile Pclass e la variabile Survived nella nostra ipotesi. Per confermare la nostra ipotesi o rifiutarla utilizziamo il chi-quadro test e vediamo che relazione si viene a formare tra queste due variabili.
+  Se la probabilità è:
+   -  P=0 indica che le variabili sono dipendenti
+   -  P=1 indica che le variabili sono indipendenti
+   -  P=<0.05 indica che la relazione tra le variabili è significativa con una confidenza del 95%, cioè siamo molto sicuri che Pclass e Survived siano          correlate 
+
+```{r}
+chisq.test(titanic$Survived, titanic$Pclass)
+```
+Siccome il p-value, cioè il lilvello di significatività, è molto piccolo questo ci conferma che esiste un'associazione tra classe di appartenenza e sopravvivenza.
+
+Andiamo a vedere più nello specifico che relazione si viene ad instaurare tra la variabile Pclass e Survived, in altre parola andiamo a vedere se c'è una correlazione lineare.
+Il coefficiente di correlazione di Pearson è un numero compreso tra -1 e 1 : se il coefficiente è +1 vuol dire che c'è una correlazione lineare positiva perfetta, se il coefficiente è -1 vuol dire che c'è una correlazione lineare negativa perfetta.
+  In altre parole :
+  - se ρxy > 0 le variabili Pclass e Survived sono direttamente correlate 
+  - se ρxy = 0 le variabili non sono correlate 
+  - se ρxy < 0 le variabili Pclass e Survived sono inversamente correlate 
+
+```{r}
+#Da variabile categoriale a variabile cardinale
+titanic$Survived <- as.numeric(titanic$Survived)
+titanic$Pclass <- as.numeric(titanic$Pclass)
+
+cor.test(titanic$Survived, titanic$Pclass, method = 'pearson')
+```
+Come si poteva immaginare la classe di appartenenza e i sopravvissuti sono due variabili direttamente correlate con una correlazione del 36%
+
+### C'è una relazione tra porto d'imbarco e sopravvivenza ?
+
+Siccome la variabile Embarked è già un fattore aggiungiamoli  3 livelli corrispondenti a Southampton, Cherbourg e Queenstown, i tre porti d'attracco, possiamo subito andare a visualizzare il nostro grafico a barre.
+Per far ciò creiamo una tabella delle proporzioni che mostra la proporzione di coloro che sono sopravvissuti a ciascun punto di imbarco.
+```{r}
+# aggiungiamo i livelli alla variabile Embarked
+titanic$Embarked <- factor(titanic$Embarked, levels = c("C","S","Q"))
+
+Survived_Embarked <- table(titanic$Survived , titanic$Embarked)
+proportion_table <- prop.table(Survived_Embarked,2)
+
+barplot(proportion_table,
+        main = "Distribuzione dei sopravissuti in base al punto di imbarco",
+        xlab = "Punto di Imbarco",
+        col = c("cyan3", "coral") ,
+        legend = rownames(proportion_table),
+        beside= TRUE
+        )
+# 1 -> morti
+# 2 -> sopravissuti 
+```
+L'ipotesi è capire se c'era una relazione tra punto d'imbarco e sopravvivenza : abbiamo scoperto che il 60% dei passeggeri che si sono imbarcati a Cherbourg è sopravvissuto, mentre solo il 38% di coloro che si sono imbarcati a Southmapton è sopravvissuto e solo il 30% di coloro che si sono imbarcati a Queenstown è sopravvissuto. Questo dimostra che coloro che si sono imbarcati a Cherbourg. Questa grande differenza può essere data dal fatto che nel primo porto d'imbarco salirono più persone ricche rispetto agli latri due porti.
+
+Andiamo a vedere che relazione si instaura tra la variabile Survived ed Embarked utilizzando il test chi quadrato : 
+```{r}
+chisq.test(Survived_Embarked)
+```
+Ancora una volta il p-value è un valore molto piccolo e questo indica che c'è una relazione tra punto d'imbarco e sopravvivenza.
+
+### Conclusioni 
+
+Analizzando il dataset abbiamo scoperto che la maggior parte delle persone imbarcate sul Titanic aveva un'età compresa tra i 20 e 40 anni ed erano proprio gli uomoni di questa età che avavano una probabilità maggiore di morire durante il naufragio. Successivamante siamo passati ad analizzare se l'appartenenza ad una determinata classe aveva influenzato la sopravvivenza: abbiamo ricavato che le persone della terza classe sono quelle che sono morte in maggiore numero. Infine abbiamo dato uno sguardo alla possibile relazione che si veniva ad instaurare tra sopravvissuti e punto d'imbarco: si è ricavato che le persone imbarcate a Cherbourg sono quelle con il più alto tasso di sopravvivenza. 
